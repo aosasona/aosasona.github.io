@@ -6,19 +6,12 @@
 set -e
 
 log() {
-	printf "\033[36m======> %s\033[0m\n" "$1"
+	printf "\033[36m========> %s\033[0m\n" "$1"
 }
 
 warn() {
-	printf "\033[33m======> %s\033[0m\n" "$1"
+	printf "\033[33m========> %s\033[0m\n" "$1"
 }
-
-# Check whether to run as root or not
-# TODO: root access is not needed, remove it
-# if [ "$(id -u)" -ne 0 ]; then
-# 	echo "Please run as root."
-# 	exit 1
-# fi
 
 FATE_DIR="$(pwd)/fate"
 GITHUB_URL="git@github.com:aosasona/fate.git"
@@ -85,15 +78,6 @@ create_volume_or_continue() {
 # create the required volumes
 create_volume_or_continue caddy_data
 
-# find the fate image, if it exists, remove it and pull the latest version
-if docker image ls | grep -q "trulyao/fate"; then
-	log "Removing old Fate image..."
-	docker image rm trulyao/fate || exit 1
-fi
-
-log "Pulling latest Fate image..."
-docker pull trulyao/fate || exit 1
-
 # check if the setup folder exists in the `fate` dir
 if [ -d "$FATE_DIR/setup" ]; then
 	log "Setup folder already exists."
@@ -148,9 +132,9 @@ else
 	cp -r "$FATE_DIR/raw/presets" "$FATE_DIR/.data/presets" || exit 1
 fi
 
-# start the services from the docker-compose file in the `setup` folder
+# start the services from the docker-compose file in the `setup` folder, this will pull the images and start the services, essentially working as an updater too
 log "Starting services..."
-cd "$FATE_DIR/setup" && docker-compose up -d --build || exit 1
+cd "$FATE_DIR/setup" && docker compose pull && docker-compose up -d --build || exit 1
 
 # clean up the `raw` folder
 log "Cleaning up..."
