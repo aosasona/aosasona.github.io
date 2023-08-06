@@ -66,17 +66,17 @@ fi
 
 # this function will be used to create volumes if they don't exist already
 create_volume_or_continue() {
-	# check if volume already exists before creating it
-	if docker volume ls | grep -q "$1"; then
+	if docker volume inspect "$1" >/dev/null 2>&1; then
 		warn "$1 volume already exists."
 	else
 		log "Creating $1 volume..."
-		docker volume create --driver local "$1" || exit 1
+		docker volume create "$1" || exit 1
 	fi
 }
-
-# create the required volumes
+#
+# # create the required volumes
 create_volume_or_continue caddy_data
+create_volume_or_continue caddy_config
 
 # check if the setup folder exists in the `fate` dir
 if [ -d "$FATE_DIR/setup" ]; then
@@ -110,12 +110,20 @@ if [ -f "$FATE_DIR/setup/Caddyfile" ]; then
 else
 	log "Creating Caddyfile..."
 
-	CONFIG='{
+	# replace the values here in the config with the values in the .env file
+	# load email from .env file
+	EMAIL=$(grep ACME_EMAIL "$FATE_DIR/setup/.env" | cut -d '=' -f2)
+	FATE_PORT=$(grep PORT "$FATE_DIR/setup/.env" | cut -d '=' -f2)
+
+	CONFIG="{
   debug
-  local_certs
-  auto_https disable_redirects
+  auto_https ignore_loaded_certs
+  email $EMAIL
+  on_demand_tls {
+    ask http://fate:$FATE_PORT/ask
+  }
   admin 0.0.0.0:2019
-}'
+}"
 
 	# Write the configuration to the Caddyfile
 	echo "$CONFIG" >"$FATE_DIR/setup/Caddyfile"
