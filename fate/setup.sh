@@ -117,7 +117,6 @@ else
 
 	CONFIG="{
   debug
-  auto_https ignore_loaded_certs
   email $EMAIL
   on_demand_tls {
     ask http://fate:$FATE_PORT/ask
